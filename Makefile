@@ -46,13 +46,22 @@ CLEAN_DIR += rm -rf target data
 # and add the kill
 KILL_PROCESS := pkill skyd
 endif
-
-debug:
+# do we need additional software?
+INSTALL_PREREQ :=
+ifeq ($(origin TARGET),x86_64-unknown-linux-musl)
+INSTALL_PREREQ += sudo apt update && sudo apt-get install musl-tools -y
+endif
+ifeq ($(origin TARGET),i686-unknown-linux-gnu)
+INSTALL_PREREQ += sudo apt update && sudo apt-get install gcc-multilib -y
+endif
+prerequisites:
+	$(INSTALL_PREREQ)
+	@echo Done checking and/or installing prerequisites
+debug: prerequisites
 	$(CARGO_BUILD_DEBUG_FULL)
-
-release:
+release: prerequisites
 	$(CARGO_BUILD_RELEASE_FULL)
-test:
+test: prerequisites
 	$(CARGO_RUN_DEBUG_SKYD)
 	$(CARGO_TEST)
 	$(KILL_PROCESS)
