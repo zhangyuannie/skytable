@@ -12,6 +12,8 @@ CONST_CARGO_TEST := cargo test
 CONST_CARGO_TEST_SINGLE_THREAD := -- --test-threads=1
 CONST_WINDOWS_START_BACKGROUND := START /B
 CONST_UNIX_START_BACKGROUND := &
+CONST_TARGET_LINUX_64_MUSL:= x86_64-unknown-linux-musl
+CONST_TARGET_LINUX_32 := i686-unknown-linux-gnu
 
 # now generate the target specific build commands
 _CARGO_BUILD_DEBUG_FULL := $(CONST_CARGO_BUILD_VERBOSE)
@@ -65,10 +67,10 @@ CARGO_BUILD_DEBUG_FULL += $(_CARGO_BUILD_DEBUG_FULL)
 CARGO_BUILD_DEBUG_SKYD += $(_CARGO_BUILD_DEBUG_SKYD)
 # do we need additional software?
 INSTALL_PREREQ :=
-ifeq ($(origin TARGET),x86_64-unknown-linux-musl)
+ifeq ($(origin TARGET),$(CONST_TARGET_LINUX_64_MUSL))
 INSTALL_PREREQ += sudo apt update && sudo apt-get install musl-tools -y
 endif
-ifeq ($(origin TARGET),i686-unknown-linux-gnu)
+ifeq ($(origin TARGET),$(CONST_TARGET_LINUX_32))
 INSTALL_PREREQ += sudo apt update && sudo apt-get install gcc-multilib -y
 endif
 
