@@ -74,8 +74,6 @@ endif
 default: debug
 	@echo Finished building debug version
 prerequisites:
-	@echo Cleaning up data files
-	@$(CLEAN_DATA)
 	$(INSTALL_PREREQ)
 	@echo Done checking and/or installing prerequisites
 debug-server: prerequisites
