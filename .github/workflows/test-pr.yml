@@ -66,20 +66,13 @@ jobs:
         if: env.BUILD == 'true'
 
       - name: Run Tests
-        run: |
-          cargo run -p skyd -- --nosave --noart &
-          cargo test --verbose -- --test-threads=1
-          sudo pkill skyd
+        run: make test
         env:
           RUST_BACKTRACE: 1
         if: env.IS_MD_FILE == 'false' && runner.os != 'Windows'
 
       - name: Run Tests (Windows)
-        run: |
-          cargo build -p skyd
-          START /B cargo run -p skyd -- --nosave --noart
-          cargo test --verbose -- --test-threads=1
-          taskkill /IM skyd.exe /F
+        run: make test
         env:
           RUST_BACKTRACE: 1
         shell: cmd

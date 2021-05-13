@@ -95,22 +95,17 @@ jobs:
         if: runner.os == 'Linux' && env.IS_ACTIONS_DOC == 'true'
 
       - name: Run Tests
-        run: |
-          cargo run -p skyd --target ${{ matrix.rust }} -- --nosave --noart &
-          cargo test --verbose --target ${{ matrix.rust }} -- --test-threads=1
-          sudo pkill skyd
+        run: make test
         env:
           RUST_BACKTRACE: 1
+          TARGET: ${{ matrix.rust }}
         if: env.IS_MD_FILE == 'false' && runner.os != 'Windows'
 
       - name: Run Tests (Windows)
-        run: |
-          cargo build -p skyd --target ${{ matrix.rust }}
-          START /B cargo run -p skyd --target ${{ matrix.rust }} -- --nosave --noart
-          cargo test --target ${{ matrix.rust }}  --verbose -- --test-threads=1
-          taskkill /IM skyd.exe /F
+        run: make test
         env:
           RUST_BACKTRACE: 1
+          TARGET: ${{ matrix.rust }}
         shell: cmd
         if: env.IS_MD_FILE == 'false' && runner.os == 'Windows'
 
@@ -193,28 +188,18 @@ jobs:
           rustup target add ${{ matrix.rust }}
         if: env.IS_MD_FILE == 'false'
 
-      - name: Install 32-bit tools (Linux)
-        run: |
-          sudo apt update && sudo apt install gcc-multilib -y
-        if: runner.os == 'Linux'
-
       - name: Run Tests
-        run: |
-          cargo run -p skyd --target ${{ matrix.rust }} -- --nosave --noart &
-          cargo test --verbose --target ${{ matrix.rust }} -- --test-threads=1
-          sudo pkill skyd
+        run: make test
         env:
           RUST_BACKTRACE: 1
+          TARGET: ${{ matrix.rust }}
         if: env.IS_MD_FILE == 'false' && runner.os == 'Linux'
 
       - name: Run Tests (Windows)
-        run: |
-          cargo build -p skyd --target ${{ matrix.rust }}
-          START /B cargo run -p skyd --target ${{ matrix.rust }} -- --nosave --noart
-          cargo test --target ${{ matrix.rust }}  --verbose -- --test-threads=1
-          taskkill /IM skyd.exe /F
+        run: make test
         env:
           RUST_BACKTRACE: 1
+          TARGET: ${{ matrix.rust }}
         shell: cmd
         if: env.IS_MD_FILE == 'false' && runner.os == 'Windows'
 
@@ -289,10 +274,6 @@ jobs:
             ${{ matrix.rust }}-target-
         if: env.IS_MD_FILE == 'false'
 
-      - name: Install MUSL tools
-        run: sudo apt-get update && sudo apt-get install musl-tools -y
-        if: runner.os == 'Linux'
-
       - name: Install Rust
         run: |
           rustup default stable
@@ -300,12 +281,10 @@ jobs:
         if: env.IS_MD_FILE == 'false'
 
       - name: Run Tests
-        run: |
-          cargo run -p skyd --target ${{ matrix.rust }} -- --nosave --noart &
-          cargo test --verbose --target ${{ matrix.rust }} -- --test-threads=1
-          sudo pkill skyd
+        run: make test
         env:
           RUST_BACKTRACE: 1
+          TARGET: ${{ matrix.rust }}
         if: env.IS_MD_FILE == 'false' && runner.os == 'Linux'
 
       - name: Archive artifacts
