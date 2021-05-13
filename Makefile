@@ -44,7 +44,8 @@ CARGO_BUILD_DEBUG_FULL += $(WIN_RUST_FLAGS)
 CARGO_BUILD_RELEASE_FULL += $(WIN_RUST_FLAGS)
 CARGO_BUILD_DEBUG_SKYD += $(WIN_RUST_FLAGS)
 # also add the `START /B` to the run
-CARGO_RUN_DEBUG_SKYD = $(CONST_WINDOWS_START_BACKGROUND) + $(_CARGO_RUN_DEBUG_SKYD)
+CARGO_RUN_DEBUG_SKYD += $(CONST_WINDOWS_START_BACKGROUND)
+CARGO_RUN_DEBUG_SKYD += $(_CARGO_RUN_DEBUG_SKYD)
 # and add the rd command
 CLEAN_DIR += rmdir target /s /q
 CLEAN_DATA += rmdir data /s /q
@@ -52,6 +53,7 @@ CLEAN_DATA += rmdir data /s /q
 KILL_PROCESS += taskkill /f /t /im skyd.exe
 else
 # host is not Windows; just add the background task flag for *nix
+CARGO_BUILD_DEBUG_SKYD += $(_CARGO_BUILD_DEBUG_SKYD)
 CARGO_RUN_DEBUG_SKYD += $(CONST_UNIX_START_BACKGROUND)
 # add the rm command
 CLEAN_DIR += rm -rf target
