@@ -1,77 +1,60 @@
-WIN_RUST_FLAGS := -Ctarget-feature=+crt-static
-DBG_BUILD_VERBOSE := cargo build --verbose
-NO_TARGET_SPECIFIED := No target specified. Defaulting to platform target
-RUN_DBG := cargo run -p skyd
-START_ARGS := --nosave --noart
-DBG_TEST_VERBOSE := cargo test --verbose
-TESTS_SINGLE_THREAD := --test-threads=1
-RELASE_VERBOSE:= cargo build --release --verbose
-debug-full:
+# Indents are a holy sin for conditionals; only use them for logical understanding while modifying the
+# makefile. Indent back to origin once you're done modifying
+
+# first assign constants; **don't** modify them throughout
+CONST_WIN_RUST_FLAGS := -Ctarget-feature=+crt-static
+CONST_CARGO_BUILD_VERBOSE := cargo build --verbose
+CONST_CARGO_BUILD_VERBOSE_RELEASE := $(CONST_CARGO_BUILD_VERBOSE) --release
+CONST_CARGO_RUN := cargo run
+CONST_PROJECT_SKYD_NOART := -p skyd -- --noart --nosave
+CONST_CARGO_TEST := cargo test
+CONST_CARGO_TEST_SINGLE_THREAD := -- --test-threads=1
+CONST_WINDOWS_START_BACKGROUND := START /B
+CONST_UNIX_START_BACKGROUND := &
+
+# now generate the target specific build commands
+CARGO_BUILD_DEBUG_FULL := $(CONST_CARGO_BUILD_VERBOSE)
+CARGO_BUILD_RELEASE_FULL := $(CONST_CARGO_BUILD_VERBOSE_RELEASE)
+CARGO_RUN_DEBUG_SKYD := $(CONST_CARGO_RUN)
+CARGO_TEST := $(CONST_CARGO_TEST)
+CLEAN_DIR :=
+KILL_PROCESS :=
+ifneq ($(origin TARGET),undefined)
+# a target is defined
+CARGO_BUILD_DEBUG_FULL += --target ${TARGET}
+CARGO_BUILD_RELEASE_FULL += --target ${TARGET}
+CARGO_RUN_DEBUG_SKYD += --target ${TARGET}
+CARGO_TEST += --target ${TARGET}
+endif
+CARGO_RUN_DEBUG_SKYD += $(CONST_PROJECT_SKYD_NOART)
+CARGO_TEST += $(CONST_CARGO_TEST_SINGLE_THREAD)
 ifeq ($(OS),Windows_NT)
-	RUSTFLAGS=$(WIN_RUST_FLAGS) $(DBG_BUILD_VERBOSE)
+# windows host OS; add the windows rustflags
+CARGO_BUILD_DEBUG_FULL = $(WIN_RUST_FLAGS) + $(CARGO_BUILD_DEBUG_FULL)
+CARGO_BUILD_RELEASE_FULL = $(WIN_RUST_FLAGS) + $(CARGO_BUILD_RELEASE_FULL)
+# also add the `START /B` to the run
+CARGO_RUN_DEBUG_SKYD = $(CONST_WINDOWS_START_BACKGROUND) + $(CARGO_RUN_DEBUG_SKYD)
+# and add the rd command
+CLEAN_DIR += rmdir target data /s /q
+# and add the kill
+KILL_PROCESS += taskkill /f /t /im skyd.exe
 else
-	$(DBG_BUILD_VERBOSE)
+# host is not Windows; just add the background task flag for *nix
+CARGO_RUN_DEBUG_SKYD += $(CONST_UNIX_START_BACKGROUND)
+# add the rm command
+CLEAN_DIR += rm -rf target data
+# and add the kill
+KILL_PROCESS := pkill skyd
 endif
 
-debug-server:
-ifeq ($(OS),Windows_NT)
-ifeq ($(origin TARGET),undefined)
-	$(info $(NO_TARGET_SPECIFIED) for building skyd (debug, Windows))
-	RUSTFLAGS=$(WIN_RUST_FLAGS) $(DBG_BUILD_VERBOSE) -p skyd
-else
-	$(info Building skyd for target ${TARGET})
-	RUSTFLAGS=$(WIN_RUST_FLAGS) $(DBG_BUILD_VERBOSE) --target ${TARGET} -p skyd
-endif
-else
-ifeq ($(origin TARGET),undefined)
-	$(info $(NO_TARGET_SPECIFIED) for building skyd (debug))
-	$(DBG_BUILD_VERBOSE) -p skyd
-else
-	$(info Building skyd for target ${TARGET})
-	$(DBG_BUILD_VERBOSE) --target ${TARGET} -p skyd
-endif
-endif
-
-test: debug-server
-ifeq ($(OS),Windows_NT)
-ifeq ($(origin TARGET),undefined)
-	START /B $(RUN_DBG) -- $(START_ARGS)
-	$(DBG_TEST_VERBOSE) -- $(TESTS_SINGLE_THREAD)
-else
-	START /B $(RUN_DBG) --target ${TARGET} --$(START_ARGS)
-	$(DBG_TEST_VERBOSE) -- $(TESTS_SINGLE_THREAD)
-endif
-else
-ifeq ($(origin TARGET),undefined)
-	$(RUN_DBG) -- $(START_ARGS) &
-	$(DBG_TEST_VERBOSE) -- $(TESTS_SINGLE_THREAD)
-else
-	$(RUN_DBG) --target ${TARGET} -- $(START_ARGS) &
-	$(DBG_TEST_VERBOSE) --target ${TARGET} -- $(TESTS_SINGLE_THREAD)
-endif
-endif
-
-clean:
-ifeq ($(OS),Windows_NT)
-	rd /s /q target
-else
-	rm -rf target
-endif
+debug:
+	$(CARGO_BUILD_DEBUG_FULL)
 
 release:
-ifeq ($(OS),Windows_NT)
-ifeq ($(origin TARGET),undefined)
-	$(info $(NO_TARGET_SPECIFIED))
-	RUSTFLAGS=$(WIN_RUST_FLAGS) $(RELASE_VERBOSE) -p skyd
-else
-	$(info Building for target ${TARGET})
-	RUSTFLAGS=$(WIN_RUST_FLAGS) $(RELASE_VERBOSE) --target ${TARGET} -p skyd
-endif
-else
-ifeq ($(origin TARGET),undefined)
-	$(info $(NO_TARGET_SPECIFIED))
-	$(RELASE_VERBOSE) -p skyd
-else
-	$(RELASE_VERBOSE) --target ${TARGET} -p skyd
-endif
-endif
+	$(CARGO_BUILD_RELEASE_FULL)
+test:
+	$(CARGO_RUN_DEBUG_SKYD)
+	$(CARGO_TEST)
+	$(KILL_PROCESS)
+clean:
+	$(CLEAN_DIR)
