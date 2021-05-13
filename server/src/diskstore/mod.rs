@@ -30,12 +30,10 @@ use crate::config::BGSave;
 use crate::coredb::{self, Data};
 use crate::diskstore::snapshot::{DIR_OLD_SNAPSHOT, DIR_SNAPSHOT};
 use bincode;
-use bytes::Bytes;
 use libsky::TResult;
 use crate::coredb::htable::HTable;
 use std::fs;
 use std::io::{ErrorKind, Write};
-use std::iter::FromIterator;
 use std::path::PathBuf;
 use std::time::Duration;
 use tokio::time;
@@ -44,11 +42,6 @@ pub mod snapshot;
 use std::process;
 mod snapstore;
 
-/// This type alias is to be used when deserializing binary data from disk
-type DiskStoreFromDisk = (Vec<String>, Vec<Vec<u8>>);
-/// This type alias is to be used when serializing data from the in-memory table
-/// onto disk
-type DiskStoreFromMemory<'a> = (Vec<&'a String>, Vec<&'a [u8]>);
 lazy_static::lazy_static! {
     pub static ref PERSIST_FILE: PathBuf = PathBuf::from("./data/data.bin");
     pub static ref OLD_PATH: PathBuf = PathBuf::from("./data.bin");
@@ -143,17 +136,7 @@ pub fn test_deserialize(file: Vec<u8>) -> TResult<HTable<String, Data>> {
     deserialize(file)
 }
 fn deserialize(file: Vec<u8>) -> TResult<HTable<String, Data>> {
-    let parsed: DiskStoreFromDisk = bincode::deserialize(&file)?;
-    let parsed: HTable<String, Data> = HTable::from_iter(
-        parsed
-            .0
-            .into_iter()
-            .zip(parsed.1.into_iter())
-            .map(|(key, value)| {
-                let data = Data::from_blob(Bytes::from(value));
-                (key, data)
-            }),
-    );
+    let parsed: HTable<String, Data> = bincode::deserialize(&file)?;
     Ok(parsed)
 }
 
@@ -175,11 +158,7 @@ pub fn write_to_disk(file: &PathBuf, data: &HTable<String, Data>) -> TResult<()>
 }
 
 fn serialize(data: &HTable<String, Data>) -> TResult<Vec<u8>> {
-    let ds: DiskStoreFromMemory = (
-        data.keys().into_iter().collect(),
-        data.values().map(|val| val.get_inner_ref()).collect(),
-    );
-    let encoded = bincode::serialize(&ds)?;
+    let encoded = bincode::serialize(&data)?;
     Ok(encoded)
 }
 
