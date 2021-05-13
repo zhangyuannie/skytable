@@ -53,7 +53,7 @@ CLEAN_DATA += rmdir data /s /q
 KILL_PROCESS += taskkill /f /t /im skyd.exe
 else
 # host is not Windows; just add the background task flag for *nix
-CARGO_BUILD_DEBUG_SKYD += $(_CARGO_BUILD_DEBUG_SKYD)
+CARGO_RUN_DEBUG_SKYD += $(_CARGO_RUN_DEBUG_SKYD)
 CARGO_RUN_DEBUG_SKYD += $(CONST_UNIX_START_BACKGROUND)
 # add the rm command
 CLEAN_DIR += rm -rf target
