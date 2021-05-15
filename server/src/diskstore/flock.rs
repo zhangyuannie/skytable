@@ -31,12 +31,16 @@
 
 // TODO(@ohsayan): Add support for solaris
 
-use std::fs::File;
+#[cfg(not(test))]
+use crate::diskstore::PERSIST_FILE;
 use std::fs::OpenOptions;
+use std::fs::{self, File};
 use std::io::Result;
 use std::io::Write;
-use std::io::{Seek, SeekFrom};
+#[cfg(test)]
 use std::path::PathBuf;
+
+const TEMPFILE: &str = "__skydata_tmp_FILEX";
 
 #[derive(Debug)]
 /// # File Lock
@@ -57,6 +61,8 @@ use std::path::PathBuf;
 ///
 pub struct FileLock {
     file: File,
+    #[cfg(test)]
+    filename: PathBuf,
     unlocked: bool,
 }
 
@@ -65,16 +71,29 @@ impl FileLock {
     ///
     /// This function will create and lock a file if it doesn't exist or it
     /// will create and lock a new file
-    pub fn lock(filename: impl Into<PathBuf>) -> Result<Self> {
+    pub fn lock(#[cfg(test)] filename: impl Into<PathBuf>) -> Result<Self> {
+        #[cfg(test)]
+        let filename = filename.into();
+        #[cfg(test)]
         let file = OpenOptions::new()
             .create(true)
             .read(true)
+            .truncate(true)
             .write(true)
-            .open(filename.into())?;
+            .open(&filename)?;
+        #[cfg(not(test))]
+        let file = OpenOptions::new()
+            .create(true)
+            .read(true)
+            .truncate(true)
+            .write(true)
+            .open(&*PERSIST_FILE)?;
         Self::_lock(&file)?;
         Ok(Self {
             file,
             unlocked: false,
+            #[cfg(test)]
+            filename,
         })
     }
     /// The internal lock function
@@ -84,9 +103,8 @@ impl FileLock {
     fn _lock(file: &File) -> Result<()> {
         __sys::try_lock_ex(file)
     }
-    #[cfg(test)]
     pub fn relock(&mut self) -> Result<()> {
-        __sys::try_lock_ex(&self.file)?;
+        Self::_lock(&self.file)?;
         self.unlocked = false;
         Ok(())
     }
@@ -99,18 +117,32 @@ impl FileLock {
         Ok(())
     }
     /// Write something to this file
+    ///
+    /// This will create a temporary file and then replaces the existing file
     pub fn write(&mut self, bytes: &[u8]) -> Result<()> {
-        // empty the file
-        self.file.set_len(0)?;
-        // set the cursor to start
-        self.file.seek(SeekFrom::Start(0))?;
-        // Now write to the file
-        self.file.write_all(bytes)
+        // open the temporary file and write to it
+        let mut file = OpenOptions::new()
+            .create(true)
+            .truncate(true)
+            .write(true)
+            .open(TEMPFILE)?;
+        file.write_all(bytes)?;
+        // replace the existing file
+        #[cfg(test)]
+        fs::rename(TEMPFILE, &self.filename)?;
+        #[cfg(not(test))]
+        fs::rename(TEMPFILE, &*PERSIST_FILE)?;
+        self.file = file;
+        // relock the new file
+        self.relock()?;
+        Ok(())
     }
     pub fn try_clone(&self) -> Result<Self> {
         Ok(FileLock {
             file: __sys::duplicate(&self.file)?,
             unlocked: self.unlocked,
+            #[cfg(test)]
+            filename: self.filename.to_owned(),
         })
     }
 }

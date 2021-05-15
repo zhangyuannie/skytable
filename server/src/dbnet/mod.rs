@@ -45,8 +45,10 @@ use crate::config::SnapshotConfig;
 use crate::config::SslOpts;
 use crate::dbnet::tcp::Listener;
 use crate::diskstore;
+use diskstore::flock;
 use diskstore::snapshot::DIR_REMOTE_SNAPSHOT;
-use diskstore::{flock, PERSIST_FILE};
+#[cfg(test)]
+use diskstore::PERSIST_FILE;
 mod tcp;
 use crate::CoreDB;
 use libsky::TResult;
@@ -336,7 +338,10 @@ pub async fn run(
             process::exit(0x100);
         }
     };
-    let file = match flock::FileLock::lock(&*PERSIST_FILE) {
+    let file = match flock::FileLock::lock(
+        #[cfg(test)]
+        &*PERSIST_FILE,
+    ) {
         Ok(lck) => lck,
         Err(e) => {
             log::error!("Failed to acquire lock on data file with error: {}", e);

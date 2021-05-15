@@ -46,7 +46,7 @@ mod bgsave {
             Data::from_string("is testing bgsave".to_owned()),
         );
         #[allow(non_snake_case)]
-        let DUR_WITH_EPSILON: Duration = Duration::from_millis(1500) + Duration::from_secs(10);
+        let DUR_WITH_EPSILON: Duration = Duration::from_millis(1700) + Duration::from_secs(10);
         let (signal, _) = broadcast::channel(1);
         let datahandle = CoreDB::new_empty(Arc::new(None));
         let mut flock = diskstore::flock::FileLock::lock("bgsave_test_1.bin").unwrap();
@@ -57,7 +57,7 @@ mod bgsave {
             flock.try_clone().unwrap(),
             Terminator::new(signal.subscribe()),
         ));
-        // sleep for 10 seconds with epsilon 1.5s
+        // sleep for 10 seconds with epsilon 1.7s
         time::sleep(DUR_WITH_EPSILON).await;
         // temporarily unlock the the file
         flock.unlock().unwrap();
@@ -73,7 +73,7 @@ mod bgsave {
                 Data::from_string("is testing bgsave".to_owned()),
             );
         }
-        // sleep for 10 seconds with epsilon 1.5s
+        // sleep for 10 seconds with epsilon 1.7s
         time::sleep(DUR_WITH_EPSILON).await;
         // we should get a map with the one key
         flock.unlock().unwrap();
@@ -84,7 +84,7 @@ mod bgsave {
         {
             datahandle.acquire_write().unwrap().get_mut_ref().clear();
         }
-        // sleep for 10 seconds with epsilon 1.5s
+        // sleep for 10 seconds with epsilon 1.7s
         time::sleep(DUR_WITH_EPSILON).await;
         flock.unlock().unwrap();
         let saved = diskstore::test_deserialize(fs::read("bgsave_test_1.bin").unwrap()).unwrap();
